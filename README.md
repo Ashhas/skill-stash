@@ -65,7 +65,24 @@ The script symlinks each skill into `~/.claude/skills/`. `git pull` updates them
 
 ## Instructions
 
-`instructions/CLAUDE.md` is a versioned copy of my global Claude Code instructions. Reference material, not auto-installed.
+Convention files meant to be pulled into projects. Unlike skills, these are standing rules that should always be in context when matching code is edited, so they ship as APM instruction primitives instead of SKILL.md workflows.
+
+- `.apm/instructions/flutter-coding-conventions.instructions.md` holds the generic Dart/Flutter rules: naming, one-widget-per-file, forbidden patterns, imports, comments, nullability, async, typed errors. Package-conditional sections cover bloc and go_router.
+- `.apm/instructions/flutter-testing-conventions.instructions.md` covers what to test, test naming, arrange/act/assert, mocking with mocktail, and factories. Package-conditional sections cover bloc_test and Drift.
+- `instructions/CLAUDE.md` is a versioned copy of my global Claude Code instructions. Reference material, not installed anywhere.
+
+Both instruction files carry `applyTo: "**/*.dart"`, so they load only when Dart files are in play.
+
+The same `apm install` that pulls the skills also places these per tool. For Claude Code they land in `.claude/rules/` with a `paths:` glob, and Claude Code auto-loads a rule whenever an edited file matches it. No `@`-import, no "read this first" link that the agent might skip.
+
+For a throwaway sandbox without APM, an `@`-import from a clone still works (the frontmatter is harmless):
+
+```
+@~/Projects/skill-stash/.apm/instructions/flutter-coding-conventions.instructions.md
+@~/Projects/skill-stash/.apm/instructions/flutter-testing-conventions.instructions.md
+```
+
+Project-level rules always win over these files on conflict.
 
 ## License
 
