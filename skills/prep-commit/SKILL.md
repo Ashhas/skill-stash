@@ -1,11 +1,11 @@
 ---
 name: prep-commit
-description: Run pre-commit preparation for the current project — detect the stack, run its formatters and linters, fix issues, optionally update the CHANGELOG and version, then suggest a conventional commit message and optional PR description. Use before committing.
+description: Run pre-commit preparation for the current project. Detect the stack, run its formatters and linters, fix issues, optionally update the CHANGELOG and version, then suggest a conventional commit message and optional PR description. Use before committing.
 ---
 
 # Prep commit
 
-## Step 1: Detect Project Type
+## Step 1: Detect project type
 Identify the project type by checking for:
 - `pubspec.yaml` → Flutter/Dart
 - `package.json` → JavaScript/TypeScript (check for framework: React, Vue, Angular, Node)
@@ -14,7 +14,7 @@ Identify the project type by checking for:
 - `Cargo.toml` → Rust
 - `go.mod` → Go
 
-## Step 2: Run Stack-Specific Tools
+## Step 2: Run stack-specific tools
 
 **Flutter/Dart:**
 - `dart run import_sorter:main`
@@ -41,50 +41,50 @@ Identify the project type by checking for:
 - `gofmt -w .` + `goimports -w .`
 - `go vet ./...`
 
-## Step 3: Fix Any Issues
+## Step 3: Fix any issues
 If analysis tools report errors, fix them.
 
-## Step 4: Ask About CHANGELOG
+## Step 4: Ask about CHANGELOG
 Ask the user: "Do you want to update the CHANGELOG?"
 
 Options:
-- **Yes** - Update changelog with new entries
-- **No changes needed** - Skip changelog update entirely
+- **Yes**: update the changelog with new entries
+- **No changes needed**: skip the changelog update entirely
 
 If yes:
-- Get current version from the project's version file
+- Get the current version from the project's version file
 - Find commits since the last changelog entry
 - Categorize using conventional commit prefixes:
   - `feat:` → **Added**
   - `fix:` → **Fixed**
   - `chore:`, `refactor:`, `perf:` → **Changed**
   - `docs:` → **Documentation**
-- Add entries under current version
+- Add entries under the current version
 
-## Step 4b: Ask About Version Bump (only if CHANGELOG updated)
+## Step 4b: Ask about version bump (only if CHANGELOG updated)
 Ask the user: "Should the version be updated?"
 
 Options:
-- **Minor** - Bump minor version (e.g., 1.1.0 → 1.2.0) - for new features
-- **Patch** - Bump patch version (e.g., 1.1.0 → 1.1.1) - for bug fixes
-- **No version change** - Keep current version
+- **Minor**: bump the minor version (e.g., 1.1.0 → 1.2.0), for new features
+- **Patch**: bump the patch version (e.g., 1.1.0 → 1.1.1), for bug fixes
+- **No version change**: keep the current version
 
 If Minor or Patch:
-- Update version in `pubspec.yaml` (Flutter) or equivalent version file
-- Update CHANGELOG header with new version number and today's date
-- Create new version section, move new entries there
+- Update the version in `pubspec.yaml` (Flutter) or the equivalent version file
+- Update the CHANGELOG header with the new version number and today's date
+- Create a new version section and move the new entries there
 
 If no version change:
-- Keep entries under current version
+- Keep entries under the current version
 
-## Step 5: Generate Commit Message
-Based on all staged/unstaged changes, generate a conventional commit.
+## Step 5: Generate commit message
+Based on all staged and unstaged changes, generate a conventional commit.
 
-**Title constraints:**
+Title constraints:
 - Maximum 72 characters (including type and scope)
 - If the description is too long, shorten it while preserving meaning
 
-## Step 6: Show Summary
+## Step 6: Show summary
 Display:
 - Files formatted
 - Issues fixed
@@ -102,14 +102,14 @@ Display:
 - bullet point 2
 ```
 
-Do NOT commit - just prepare and show the suggested commit.
+Do NOT commit. Just prepare and show the suggested commit.
 
-## Step 7: Ask About PR Creation
+## Step 7: Ask about PR creation
 Ask the user: "Will you open a Pull Request for this change?"
 
 Options:
-- **Yes** - Generate a PR description
-- **No** - Skip PR description
+- **Yes**: generate a PR description
+- **No**: skip the PR description
 
 If yes, generate a PR description using this format:
 
@@ -139,13 +139,13 @@ If yes, generate a PR description using this format:
 ```
 
 Guidelines for PR descriptions:
-- **What**: Focus on the change itself, not the files (reviewers can see those)
-- **Why**: Explain motivation and context — this is the most valuable part
-- **Keep it concise**: Don't include verification steps or file lists unless they add value
+- **What**: focus on the change itself, not the files (reviewers can see those)
+- **Why**: explain motivation and context; this is the most valuable part
+- **Keep it concise**: don't include verification steps or file lists unless they add value
 - **Adapt to change type**:
-  - Security patches: Include CVE links and vulnerability details
-  - Features: Explain the user value and design decisions
-  - Refactors: Explain what prompted it and any risks
-  - Bug fixes: Describe the bug and root cause
+  - Security patches: include CVE links and vulnerability details
+  - Features: explain the user value and design decisions
+  - Refactors: explain what prompted the refactor and any risks
+  - Bug fixes: describe the bug and root cause
 
-Do NOT create the PR - just show the suggested description.
+Do NOT create the PR. Just show the suggested description.

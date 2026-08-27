@@ -81,4 +81,4 @@ Removing patterns is half the job. Sterile, voiceless writing is just as obvious
 
 ---
 
-*Adapted from [pstack's unslop](https://github.com/cursor/plugins/tree/main/pstack/skills/unslop) by Lauren Tan (poteto), MIT licensed. See the Attribution section in this repo's README.*
+*Adapted from [pstack's unslop](https://github.com/cursor/plugins/tree/main/pstack/skills/unslop) by Lauren Tan (poteto), MIT licensed.*

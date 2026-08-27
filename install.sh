@@ -28,7 +28,7 @@ for target_dir in "${SKILL_DIRS[@]}"; do
     if [[ -L "$link" ]]; then
       ln -sfn "${skill%/}" "$link" && echo "updated  $link"
     elif [[ -e "$link" ]]; then
-      echo "SKIPPED  $link exists and is not a symlink — resolve manually" >&2
+      echo "SKIPPED  $link exists and is not a symlink; resolve manually" >&2
     else
       ln -s "${skill%/}" "$link" && echo "linked   $link"
     fi
