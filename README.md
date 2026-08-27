@@ -16,28 +16,47 @@ Skills here are applied per project. The projects that want a skill pull it in; 
 
 ## Install
 
-Per project, the intended way. Works for Claude Code, Codex, Cursor, and Copilot. Example:
+### Per project (the intended way)
+
+Works for Claude Code, Codex, Cursor, and Copilot. Example:
 
 ```yaml
 # apm.yml
 dependencies:
   apm:
-    - ashhas/skill-stash#v0.2.0
+    - ashhas/skill-stash#v0.3.0
 ```
 
-Then `apm install`. [APM](https://github.com/danielmeppiel/apm) resolves `owner/repo` against github.com directly: it fetches this repo into `apm_modules/`, records the exact commit in `apm.lock.yaml`, and copies the skills into the directories your tools read. Those directories differ per tool by design; the content is identical. Current APM writes `.claude/skills/` for Claude Code and `.agents/skills/` for Codex, Cursor, and Copilot (older APM versions only write `.agents/skills/`; upgrade with `apm update` if Claude Code doesn't see the skills).
+Run `apm install`. [APM](https://github.com/danielmeppiel/apm) resolves `owner/repo` against github.com directly:
+
+1. Fetches this repo into `apm_modules/`.
+2. Records the exact commit in `apm.lock.yaml`.
+3. Copies the skills into the directories your tools read.
+
+The directories differ per tool by design; the content is identical:
+
+| Tool | Skills land in |
+|------|----------------|
+| Claude Code | `.claude/skills/` |
+| Codex, Cursor, Copilot | `.agents/skills/` |
+
+Older APM versions only write `.agents/skills/`. If Claude Code doesn't see the skills, run `apm update` first.
 
 No APM? Copy the skill folder into `<project>/.claude/skills/`.
 
-Global install is opt-in, for when you want every skill on a machine:
+### Global (opt-in)
+
+For when you want every skill on a machine:
 
 ```bash
 git clone https://github.com/ashhas/skill-stash && cd skill-stash && ./install.sh
 ```
 
-This symlinks each skill into `~/.claude/skills/`. `git pull` updates them in place, and `./install.sh --uninstall` removes the links.
+The script symlinks each skill into `~/.claude/skills/`. `git pull` updates them in place. `./install.sh --uninstall` removes the links.
 
-`unslop` is meant to apply to all writing. Its description nudges auto-invocation, but for a guarantee add an `@` import to your `CLAUDE.md` (global or per-project; use `AGENTS.md` for Codex), pointing at wherever the file lives for you:
+### Always-on unslop
+
+`unslop` should apply to all writing. Its description nudges auto-invocation; for a guarantee, add an `@` import to your `CLAUDE.md` (global or per-project; `AGENTS.md` for Codex), pointing at wherever the file lives for you:
 
 ```
 @~/Projects/skill-stash/skills/unslop/SKILL.md   # from a clone
