@@ -15,7 +15,7 @@ Skills here are applied per project. The projects that want a skill pull it in; 
 
 ## Install
 
-Per project, the intended way. Works for Claude Code, Codex, Cursor, and Copilot. Example `apm.yml` (adjust the pin to the version you want, or drop it to track `main`):
+Per project, the intended way. Works for Claude Code, Codex, Cursor, and Copilot. Example:
 
 ```yaml
 # apm.yml
