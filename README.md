@@ -24,7 +24,7 @@ Works for Claude Code, Codex, Cursor, and Copilot. Example:
 # apm.yml
 dependencies:
   apm:
-    - ashhas/skill-stash#v0.3.0
+    - ashhas/skill-stash#v0.4.0
 ```
 
 Run `apm install`. [APM](https://github.com/danielmeppiel/apm) resolves `owner/repo` against github.com directly:
