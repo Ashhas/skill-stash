@@ -5,52 +5,59 @@ description: Discover, classify, and batch-apply dependency and plugin updates f
 
 # Dependency updater
 
-Discover all available dependency and plugin updates for a project's modules, classify them by risk and effort, apply approved updates, verify the build, and prepare a PR.
+Discover all available dependency and plugin updates for a project's modules, classify them by risk and effort, apply approved updates, verify the build, and prepare a PR. Also fits periodic dependency hygiene and security-advisory checks.
 
-The workflow is the same for every module: STEP 0 (selection) → 1 (discovery) → 2 (classification) → 3 (confirmation) → 4 (apply) → 5 (PR). The workflow is **stack-agnostic**; only the content of the lane-specific steps depends on the module's ecosystem. A **lane** is the ecosystem-specific answer to four questions: how to discover candidates, how to classify them, how to apply bumps, and how to verify. Two lanes ship pre-written; every other ecosystem gets a derived lane:
+The pipeline is the same for every module: STEP 0 (selection) → 1 (discovery) → 2 (classification) → 3 (confirmation) → 4 (apply) → 5 (PR). Only the lane-specific steps depend on the ecosystem. A **lane** answers four questions for one ecosystem: how to discover candidates, how to classify them, how to apply bumps, and how to verify. Lanes plug into STEPs 1, 2 (§2.3), 4.2, and 4.4:
 
-- **Maven lane**: Java/Kotlin modules built with Maven. Uses the `versions-maven-plugin`, BOMs, and `pom.xml`. Details: [references/maven-lane.md](references/maven-lane.md)
-- **Gradle lane**: JVM and Android modules built with Gradle. Uses the versions plugin, version catalogs, and the AGP/Kotlin/KSP coupling matrices. Details: [references/gradle-lane.md](references/gradle-lane.md)
-- **Node lane**: JavaScript/TypeScript workspaces using npm or Yarn. Uses `package.json` plus the lockfile. Details: [references/node-lane.md](references/node-lane.md)
-- **Any other ecosystem** (pip/Poetry/uv, Cargo, Go modules, Flutter/pub, Composer, RubyGems, …): derive a lane by filling in [references/lane-template.md](references/lane-template.md) for that ecosystem before STEP 1. Write the derived lane down in your working notes for the run, so every later step can point back to it.
+| Lane | Covers | Where |
+|------|--------|-------|
+| Maven | Java/Kotlin modules built with Maven: `versions-maven-plugin`, BOMs, `pom.xml` | [references/maven-lane.md](references/maven-lane.md) |
+| Gradle | JVM and Android modules: versions plugin, version catalogs, AGP/Kotlin/KSP couplings | [references/gradle-lane.md](references/gradle-lane.md) |
+| Node | JavaScript/TypeScript workspaces on npm or Yarn: `package.json` plus the lockfile | [references/node-lane.md](references/node-lane.md) |
+| Derived | Any other ecosystem (pip/Poetry/uv, Cargo, Go modules, Flutter/pub, Composer, RubyGems, …) | Fill in [references/lane-template.md](references/lane-template.md) before STEP 1; write the derived lane in your working notes so later steps can point back to it |
 
-This file holds the shared workflow and the rules that apply to all lanes. The lane files hold the ecosystem-specific content for the lane-specific steps. **After STEP 0, read (or derive) the lane for every selected module before starting STEP 1. Do not run a lane from memory.** Do not mix lanes within a single module's run.
+## Non-negotiables
 
-> **Scope:** The lane files carry generic ecosystem rules plus *examples* of coupling matrices. On first use in a repo, verify the couplings against that project's actual stack.
+These hold at every step:
 
-> **Formatting rule:** Always wrap library, dependency, plugin, and Maven coordinate names in backticks, both in reports and in the skill's own prose. Examples: `` `Flyway` ``, `` `Lombok` ``, `` `Vert.x` ``, `` `Spring Boot` ``, `` `flyway-database-postgresql` ``, `` `${spotless.version}` ``. This keeps the reader's eye locked on identifiers vs. surrounding prose. Build tools (Maven, Gradle, Yarn) and umbrella categories ("AWS SDK", "your project") do NOT get backticks; only the specific libraries being managed do.
+1. **Lane first.** Read (or derive) the selected lane before STEP 1. Never run a lane from memory. Never mix lanes within one module's run.
+2. **Drift always ships.** Pre-existing drift found in discovery is fixed in this batch, whatever scope the user picks.
+3. **Audit every RISKY and major bump** (§2.2 gathers the evidence, §4.3 resolves it). Compile and test success are not a substitute: they only prove the named APIs you call still exist, and miss renamed config properties, flipped defaults, and behaviour changes.
+4. **Never bump a GA dependency to a pre-release.**
+5. **Unsure about an ecosystem coupling → BLOCKED**, not RISKY.
+6. **One commit per module.** Never push or open a PR without the user's explicit confirmation (STEP 5).
+7. **Lane coupling matrices are examples.** On first use in a repo, verify them against that project's actual stack.
 
-## When to use
-
-- User asks to check or update dependencies (backend or frontend)
-- Periodic dependency hygiene
-- Security advisory requires checking dependency versions
+**Report formatting:** wrap library, dependency, plugin, and coordinate names in backticks (`` `Flyway` ``, `` `flyway-database-postgresql` ``, `` `${spotless.version}` ``), in reports and prose alike. Build tools (Maven, Gradle, Yarn) and umbrella categories ("AWS SDK") get none.
 
 ---
 
 ## STEP 0: Module discovery and selection
 
-Discover the project's modules and their ecosystems. Do not assume a layout:
+Discover the project's modules and ecosystems. Do not assume a layout:
 
 ```bash
 find . -maxdepth 3 \( -name pom.xml -o -name 'build.gradle*' -o -name package.json -o -name pubspec.yaml -o -name pyproject.toml -o -name requirements.txt -o -name Cargo.toml -o -name go.mod -o -name composer.json -o -name Gemfile \) -not -path '*/target/*' -not -path '*/node_modules/*' -not -path '*/build/*' -not -path '*/.git/*'
 ```
 
-Map each hit to a lane: `pom.xml` → Maven lane; `build.gradle*` → Gradle lane; `package.json` → Node lane; anything else → a derived lane for that ecosystem (see the lane list above). Present the discovered modules as a numbered menu with their ecosystem (plus an "All modules" option) and ask the user which to check. Wait for the selection before proceeding. **Read the selected lane's reference file, or derive the lane from [references/lane-template.md](references/lane-template.md), now**, before STEP 1.
+Map each hit to a lane: `pom.xml` → Maven; `build.gradle*` → Gradle; `package.json` → Node; anything else → derived. Present the discovered modules as a numbered menu with their ecosystem, plus an "All modules" option. Wait for the user's selection, then read or derive the selected lanes (non-negotiable 1).
 
-If "All modules" is selected, run STEPs 1–2 for each module independently, each in its own lane. Present a combined classification report grouped by module, and produce **one commit per module** in STEP 4 for clean bisectability.
+"All modules": run STEPs 1–2 per module, each in its own lane; present one combined classification report grouped by module; one commit per module in STEP 4 for clean bisectability.
 
 ---
 
 ## STEP 1: Discovery (lane-specific)
 
-Follow the **STEP 1** section of the selected lane. The output is the same for every lane: a candidate update list (each with current version, available version, and scope) plus any **pre-existing drift** found along the way. Drift found in discovery must be fixed in this batch regardless of which updates the user picks.
+Follow the lane's **STEP 1**. Output, identical for every lane:
+
+- A candidate update list: each entry has current version, available version, and scope.
+- Any pre-existing drift found along the way (non-negotiable 2).
 
 ---
 
 ## STEP 2: Classification
 
-Classify every candidate update from STEP 1 as SAFE, RISKY, or BLOCKED.
+Classify every candidate from STEP 1 as SAFE, RISKY, or BLOCKED.
 
 ### 2.1: Classify the bump (all lanes)
 
@@ -63,27 +70,27 @@ Classify every candidate update from STEP 1 as SAFE, RISKY, or BLOCKED.
 
 Beta → newer beta is RISKY (API may change between betas). Beta → GA is SAFE.
 
-### 2.2: Fetch release notes AND migration guide (all lanes; for RISKY and all majors)
+### 2.2: Fetch release notes AND migration guide (all lanes; every RISKY and major bump)
 
-A classification with no evidence is a guess. For every RISKY and major-bump candidate, fetch **both** of these where they exist. They answer different questions:
+A classification with no evidence is a guess. Fetch both documents where they exist:
 
-- **Release notes** (or changelog): *what changed* in the new version. Tells you the surface area.
-- **Migration guide** (or upgrade guide / "breaking changes" page): *what to change in your code* to adopt the new version. Tells you the work. **Always look for this second document.** A library that publishes a migration guide considers it required reading; skipping it is the most common cause of silent post-upgrade bugs.
+- **Release notes / changelog**: what changed. The surface area.
+- **Migration guide** (upgrade guide, "breaking changes" page): what to change in your code. Always look for this second document; skipping it is the most common cause of silent post-upgrade bugs.
 
-The two documents may live at different URLs. Many projects publish them together, but for major bumps the migration guide is usually a separate, more detailed page. To find them: search `<library> migration guide <version>` (search for "migration", not just "release notes"), and check the project's GitHub releases page for the changelog.
+To find them: search `<library> migration guide <version>` (the word "migration", not "release notes") and check the project's GitHub releases page. For majors the two usually live at separate URLs.
 
-Extract from each document, in this order:
+Extract, in this order:
 
-1. **Required runtime version** (Java, Node, Python, Rust, Go, Dart, whatever the lane's runtime is). Cross-check with the lane's compatibility rules.
-2. **Required parent/BOM or coupled-framework version.** Cross-check with the lane's coupling rules.
-3. **Removed APIs and renamed classes/methods.** These become grep patterns for §4.3.
-4. **Renamed or removed configuration properties.** These become config-file grep patterns for §4.3.
-5. **Behavioural changes** (default-value flips, new validation, changed serialisation). Describe each.
-6. **For multi-version jumps** (v6 → v8): read every intermediate major's notes, not just the target. A multi-major jump is BLOCKED per §2.1; the notes you gather here feed its migration appendix, not a bump in this batch.
+1. **Required runtime version** (Java, Node, Python, Rust, Go, Dart, whatever the lane's runtime is) → cross-check the lane's compatibility rules.
+2. **Required parent/BOM or coupled-framework version** → cross-check the lane's coupling rules.
+3. **Removed APIs and renamed classes/methods** → grep patterns for §4.3.
+4. **Renamed or removed configuration properties** → config-file grep patterns for §4.3.
+5. **Behavioural changes** (default-value flips, new validation, changed serialisation) → describe each.
+6. **Multi-version jumps** (v6 → v8): read every intermediate major's notes. The jump itself is BLOCKED per §2.1; these notes feed its migration appendix.
 
-For minor bumps where no migration guide exists, the release notes or changelog is enough. Extract the same items 3 and 4 if mentioned.
+Minor bumps with no migration guide: the changelog is enough; still extract items 3 and 4 if mentioned.
 
-**Output: an Audit items list per RISKY/major bump.** This is the input to §4.3. Format:
+**Output per RISKY/major bump, the input to §4.3:**
 
 ```
 **`<coordinate or package>` A.B.C → X.Y.Z**
@@ -91,22 +98,22 @@ For minor bumps where no migration guide exists, the release notes or changelog 
 - Audit item: <…>
 ```
 
-If the notes are paywalled or sparse, the classification depends on how the library is used (cross-reference with the lane's usage scan):
+**Sparse or paywalled notes**: decide by usage (run the lane's usage scan):
 
-- **Direct usage** in the codebase (any import of the package in `src/`) → reclassify as **BLOCKED**. Without a migration guide and with code that calls the API directly, the risk of silent behavioural breakage is too high for a routine batch. Write "Notes unavailable, audit cannot be completed without a dedicated spike" and revert the bump if it was already applied.
-- **Transitive only** (no direct imports) → keep as **RISKY** but flag explicitly: "Notes sparse; transitive only. Verified by smoke test and the module's verification suite. No source-level audit possible." The verification suite is the safety net here.
+- **Direct usage** in `src/` → BLOCKED. Record "Notes unavailable, audit cannot be completed without a dedicated spike" and revert the bump if already applied.
+- **Transitive only** → RISKY, flagged: "Notes sparse; transitive only. Verified by smoke test and the module's verification suite. No source-level audit possible."
 
-**For BLOCKED items, produce a concrete bullet list of migration actions** sourced from the notes. Good: "Replace `@MockBean` with `@MockitoBean` across test classes". Bad: "Major bump, needs review". If the notes are paywalled or sparse, write "Notes unavailable, needs dedicated spike" rather than fabricating actions.
+**Every BLOCKED item gets a concrete action list** sourced from the notes. Good: "Replace `@MockBean` with `@MockitoBean` across test classes". Bad: "Major bump, needs review". With sparse notes write "Notes unavailable, needs dedicated spike"; never fabricate actions.
 
 ### 2.3: Lane-specific classification rules
 
-Apply the **STEP 2** section of the selected lane: runtime and compatibility checks, ecosystem coupling matrices, usage scans, and any lane-specific reclassification rules. If unsure about a coupling, default to BLOCKED rather than RISKY.
+Apply the lane's **STEP 2** section: runtime checks, coupling matrices, usage scans, reclassification rules. Non-negotiable 5 applies.
 
 ### 2.4: Produce the classification report (all lanes)
 
-Use a Markdown table for every bucket with one-line cells. BLOCKED items get a "Migration details" appendix immediately below the table; each BLOCKED row gets a bolded heading and a normal bullet list there. This keeps the four tables visually consistent for scanning while still surfacing the full action lists.
+One Markdown table per bucket, one-line cells. BLOCKED rows additionally get a "Migration details" appendix below the tables.
 
-**Pre-existing drift** (omit section if empty):
+**Pre-existing drift** (omit if empty):
 
 ```markdown
 | # | Drift | Detail | Fix |
@@ -135,7 +142,7 @@ Use a Markdown table for every bucket with one-line cells. BLOCKED items get a "
 |------------|--------------------|---------|--------------------|-------|
 ```
 
-Followed by a "Migration details" subsection, with one section per BLOCKED row:
+**Migration details** appendix, one section per BLOCKED row:
 
 ```
 **`<coordinate or package>` A.B.C → X.Y.Z**
@@ -145,31 +152,29 @@ Followed by a "Migration details" subsection, with one section per BLOCKED row:
 
 Rules:
 
-- Table cells must fit on one line. The migration headline is one short summary; full bullets live in the appendix.
-- Every BLOCKED row in the table must have a corresponding section in the appendix.
-- If release notes were unavailable, write "Notes unavailable, needs spike" as the headline and a single matching bullet in the appendix.
-- **Scope column by lane:** Maven uses `property` / `inline` / `parent`. Gradle uses `catalog` / `plugin` / `inline` / `wrapper`. Node uses `dependency` / `devDependency` / `@types` / `resolution`. A derived lane uses the scope buckets defined when deriving it (lane-template step 1c). Tag security-relevant rows with their advisory severity in the Notes column.
-
-Pre-existing drift items are included in the batch **automatically**. They are not optional.
+- Cells fit on one line; the migration headline is one short summary, full bullets live in the appendix.
+- Every BLOCKED row has an appendix section. If notes were unavailable: headline "Notes unavailable, needs spike" plus one matching bullet.
+- **Scope column by lane:** Maven `property` / `inline` / `parent`; Gradle `catalog` / `plugin` / `inline` / `wrapper`; Node `dependency` / `devDependency` / `@types` / `resolution`; derived lanes use the buckets from lane-template step 1c.
+- Tag security-relevant rows with their advisory severity in Notes.
 
 ### 2.5: Recommended next action
 
-End the report with a single bold line telling the user what to do. Pick from these patterns:
+End the report with exactly one bold line:
 
 - `**Recommended next action:** Apply Drifts + SAFE (N changes). Skip RISKY and BLOCKED for now.`
 - `**Recommended next action:** Apply Drifts + RISKY (M changes, with care). No SAFE updates this round.`
 - `**Recommended next action:** Apply Drifts only. No SAFE or RISKY updates available.`
 - `**Recommended next action:** No actionable updates. All available versions are pre-releases or BLOCKED.`
 
-Selection rules:
+Pick by:
 
 - SAFE non-empty → "Drifts + SAFE".
 - SAFE empty, RISKY non-empty → "Drifts + RISKY (with care)".
 - Only BLOCKED items, drift present → "Drifts only".
-- Only BLOCKED or pre-release items and no drift → "No actionable updates".
-- Include RISKY in the recommendation only if there are 1–2 self-contained items the user could reasonably accept in the same PR. For 3+ RISKY items, recommend leaving them for separate PRs.
+- Only BLOCKED or pre-release items, no drift → "No actionable updates".
+- Include RISKY in the recommendation only for 1–2 self-contained items the user could accept in the same PR; for 3+, recommend separate PRs.
 
-The recommendation is your opinionated call. The user can override it in STEP 3.
+The recommendation is your opinionated call; the user can override it in STEP 3.
 
 ---
 
@@ -178,8 +183,8 @@ The recommendation is your opinionated call. The user can override it in STEP 3.
 Present the STEP 2 report. Ask: **"Apply the recommended action, or specify a different scope?"**
 
 - No → exit without changes.
-- Yes / approves a subset → use only those updates.
-- Pre-existing drifts always go in, regardless of the chosen scope.
+- Yes, or approves a subset → use only those updates.
+- Drift goes in regardless (non-negotiable 2).
 
 ---
 
@@ -192,25 +197,21 @@ git checkout <default-branch> && git pull
 git checkout -b chore/dependency-updates-<module>-<YYYYMMDD>
 ```
 
-Use the repo's default branch. Keep the project's branch-naming convention if it has one; otherwise use the pattern above.
+Use the repo's default branch and its branch-naming convention if it has one; otherwise the pattern above.
 
 ### 4.2: Apply version bumps (lane-specific)
 
-Follow the **apply** section of the selected lane.
+Follow the lane's **apply** section.
 
 ### 4.3: Resolve audit items (all lanes; mandatory for every RISKY and major bump)
 
-This is the step most likely to be skipped. Don't skip it. Compile success does NOT prove a bump is safe. It only proves the *named* APIs you used haven't been removed, and says nothing about renamed config properties, flipped defaults, deprecated-but-still-working APIs, or behaviour changes.
+The step most likely to be skipped; don't skip it (non-negotiable 3). Run every audit item from §2.2 as an explicit grep. Exactly three valid outcomes per item:
 
-For every RISKY/major bump applied in §4.2, walk through its **Audit items list** from §2.2 and resolve each one. There are exactly three valid outcomes per item:
+1. **Not applicable**: zero matches. Record it; move on.
+2. **Applicable, fixed**: matches found; apply the change the migration guide calls for; commit it alongside the version bump.
+3. **Applicable, blocked**: matches that can't be fixed cheaply. Revert that single bump; reclassify BLOCKED with a concrete migration-work entry.
 
-1. **Not applicable**: grep returns no matches in the codebase. Record this; move on.
-2. **Applicable, fixed**: grep finds matches; apply the change the migration guide calls for; commit the fix alongside the version bump.
-3. **Applicable, blocked**: grep finds matches that can't be fixed cheaply. Revert that single version bump and reclassify it as BLOCKED with a concrete migration-work entry.
-
-Run each audit item as an explicit grep before claiming the bump is done. The lane files show lane-specific grep surfaces and examples.
-
-**Write down each audit item and its outcome before moving to §4.4.** A typical format:
+Record every outcome before §4.4:
 
 ```
 === RISKY audit: <package> X → Y ===
@@ -219,13 +220,11 @@ Run each audit item as an explicit grep before claiming the bump is done. The la
 - <audit item 3> → 2 matches → FIXED
 ```
 
-If you skip this step, you're shipping a guess. The compile and test verifications in §4.4 will not catch silent behavioural changes; they exist to catch *additional* breakage, not to substitute for the audit.
-
-**For SAFE bumps** the audit is *not required*, but for any minor bump on a library the codebase imports directly, a 30-second scan of the changelog is good hygiene. Patch bumps need no audit.
+SAFE bumps need no audit; for a minor bump of a directly imported library, a 30-second changelog scan is good hygiene. Patch bumps need nothing.
 
 ### 4.4: Verify (lane-specific)
 
-Follow the **verify** section of the selected lane. If anything fails: identify the offending bump (revert one at a time if needed), fix if straightforward, otherwise revert that single bump and move it to BLOCKED.
+Follow the lane's **verify** section. On failure: isolate the offending bump (revert one at a time if needed), fix if straightforward, otherwise revert that single bump and move it to BLOCKED.
 
 ### 4.5: Commit (all lanes)
 
@@ -247,40 +246,38 @@ git commit -m "chore(<module>): bump dependencies
 - ..."
 ```
 
-Do **not** include the bump count in the commit subject. The count rots as fast as the list of bumps itself; keep the subject stable and let the body hold the detail.
-
-For multi-module runs, one commit per module. `<module>` in the scope is the module name.
+No bump count in the subject (it rots); the body holds the detail. One commit per module; `<module>` is the module name.
 
 ---
 
 ## STEP 5: PR
 
-This step assembles the PR content and gates the push. Follow the repo's own PR conventions (template, title format) if it has any.
+Assemble the PR content, then gate the push. Follow the repo's own PR conventions (template, title format) if it has any.
 
-### 5.1: Assemble and present the PR content
+### 5.1: Assemble and present
 
-Immediately after STEP 4 commits, assemble a What/Why-structured draft:
+Build a What/Why-structured draft:
 
-- **What**: the bump list (`<package>: <old> → <new>`, one line each) and pre-existing drift fixed (omit if none)
-- **Why**: dependency hygiene and/or the advisory that triggered the run; audit items resolved (one bullet per RISKY/major item with its outcome, from §4.3)
-- **Excluded (needs dedicated work)**: the BLOCKED table from §2.4 verbatim. Link a follow-up ticket instead of the long appendix if preferred.
+- **What**: the bump list (`<package>: <old> → <new>`, one line each) and drift fixed (omit if none).
+- **Why**: dependency hygiene and/or the triggering advisory; audit items resolved, one bullet per RISKY/major item with its outcome from §4.3.
+- **Excluded (needs dedicated work)**: the BLOCKED table from §2.4 verbatim; link a follow-up ticket instead of the long appendix if preferred.
 
-Present this draft to the user. **Do not push and do not create a PR yet.** Ask: **"Push the branch and open this PR? Reply 'push' / 'open the PR' to confirm, or tell me what to change."**
+Present the draft. **Do not push and do not create a PR yet.** Ask: **"Push the branch and open this PR? Reply 'push' / 'open the PR' to confirm, or tell me what to change."**
 
-### 5.2: Push and open the PR (only on explicit confirmation)
+### 5.2: Push and open (only on explicit confirmation)
 
-Only after the user has unambiguously confirmed in 5.1, push the branch and create the PR (e.g. `gh pr create`) with the assembled content. If the user wants edits, regenerate and re-present. Never publish a draft they haven't seen.
+Only after an unambiguous confirmation, push the branch and create the PR (e.g. `gh pr create`) with the assembled content. If the user wants edits, regenerate and re-present; never publish a draft they haven't seen.
 
 ---
 
 ## Verification checklist (all lanes)
 
-The lane files carry their own lane-specific checklists. Run those too.
+Run the lane's own checklist too.
 
-- [ ] The selected lane's reference file was read (or the lane derived) before STEP 1
+- [ ] Selected lane read (or derived) before STEP 1
 - [ ] Release notes AND migration guide fetched (§2.2) for every RISKY and major-bump candidate; both URLs attached
 - [ ] Audit items list produced (§2.2) for every RISKY and major-bump candidate
 - [ ] Every audit item resolved (§4.3): explicitly grepped, outcome recorded as "not applicable" / "FIXED" / "BLOCKED"
-- [ ] Every BLOCKED row has a concrete migration appendix (or an honest "needs spike" if notes were unavailable)
+- [ ] Every BLOCKED row has a concrete migration appendix, or an honest "needs spike" when notes were unavailable
 - [ ] Report ends with a single-line **Recommended next action**
 - [ ] PR opened only after explicit confirmation, with the assembled What/Why content
