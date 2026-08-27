@@ -11,7 +11,7 @@ Skills here are applied per project. The projects that want a skill pull it in; 
 | [stash](skills/stash/SKILL.md) | Lists every installed skill-stash skill with a short explanation, read live from the skill files. |
 | [prep-commit](skills/prep-commit/SKILL.md) | Detects the project's stack, runs its formatters and linters, optionally updates CHANGELOG and version, then suggests a conventional commit and PR description. |
 | [unslop](skills/unslop/SKILL.md) | Cuts AI tells from any writing. Always applied. |
-| [dependency-updater](skills/dependency-updater/SKILL.md) | Discovers, classifies (SAFE/RISKY/BLOCKED), and batch-applies dependency updates for any stack, with a mandatory migration-guide audit before any risky bump. Ships Maven and Node lanes plus a template for deriving other ecosystems. |
+| [dependency-updater](skills/dependency-updater/SKILL.md) | Discovers, classifies (SAFE/RISKY/BLOCKED), and batch-applies dependency updates for any stack, with a mandatory migration-guide audit before any risky bump. Ships Maven, Gradle, and Node lanes plus a template for deriving other ecosystems. |
 
 ## Install
 

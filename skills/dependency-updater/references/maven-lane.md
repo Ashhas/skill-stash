@@ -21,8 +21,8 @@ Run all of §1.1 through §1.5 for each selected module.
 
 ```bash
 cd <module-dir>
-$MVN versions:display-dependency-updates -DprocessDependencyManagement=true -DallowSnapshots=false > /tmp/dep-updates.log 2>&1
-grep '\->' /tmp/dep-updates.log | grep -v '\-alpha\|\-beta\|\-RC\|\-M[0-9]\|\-SNAPSHOT\|\-cr\.\|\.Beta\|\.Alpha\|\.CR'
+$MVN versions:display-dependency-updates -DprocessDependencyManagement=true -DallowSnapshots=false > /tmp/dep-updates-<module>.log 2>&1
+grep '\->' /tmp/dep-updates-<module>.log | grep -v '\-alpha\|\-beta\|\-RC\|\-M[0-9]\|\-SNAPSHOT\|\-cr\.\|\.Beta\|\.Alpha\|\.CR'
 ```
 
 **Expect hundreds to thousands of lines for any module that imports a BOM.** Most of that is BOM-managed transitive noise, collapsed by the de-duplication rule below. The actionable signal comes from §§1.2 and 1.3.
@@ -37,8 +37,8 @@ grep '\->' /tmp/dep-updates.log | grep -v '\-alpha\|\-beta\|\-RC\|\-M[0-9]\|\-SN
 
 ```bash
 cd <module-dir>
-$MVN versions:display-property-updates -DallowSnapshots=false > /tmp/prop-updates.log 2>&1
-grep '\->' /tmp/prop-updates.log | grep -v '\-alpha\|\-beta\|\-RC\|\-M[0-9]\|\-SNAPSHOT\|\-cr\.\|\.Beta\|\.Alpha\|\.CR'
+$MVN versions:display-property-updates -DallowSnapshots=false > /tmp/prop-updates-<module>.log 2>&1
+grep '\->' /tmp/prop-updates-<module>.log | grep -v '\-alpha\|\-beta\|\-RC\|\-M[0-9]\|\-SNAPSHOT\|\-cr\.\|\.Beta\|\.Alpha\|\.CR'
 ```
 
 Properties map directly to the change you'll make (edit one line). This is the most actionable output of the discovery phase.
@@ -52,7 +52,7 @@ cd <module-dir>
 grep -nE '<version>[0-9]' pom.xml | grep -v '\${' | grep -v '<!--'
 ```
 
-For each inline version, cross-reference `/tmp/dep-updates.log` from §1.1. If there's a `->` line for that artifact, add it to the candidate update list with scope `inline`.
+For each inline version, cross-reference `/tmp/dep-updates-<module>.log` from §1.1. If there's a `->` line for that artifact, add it to the candidate update list with scope `inline`.
 
 ### 1.4: Plugins and parent POM
 

@@ -3,15 +3,16 @@ name: dependency-updater
 description: Discover, classify, and batch-apply dependency and plugin updates for any project, whatever the stack. Maven, Gradle, npm/Yarn/pnpm, pip/Poetry, Cargo, Go, Flutter/pub, and others. Use when the user says "update dependencies", "check for updates", "bump versions", or "dependency audit".
 ---
 
-# Dependency Updater
+# Dependency updater
 
 Discover all available dependency and plugin updates for a project's modules, classify them by risk and effort, apply approved updates, verify the build, and prepare a PR.
 
 The workflow is the same for every module: STEP 0 (selection) → 1 (discovery) → 2 (classification) → 3 (confirmation) → 4 (apply) → 5 (PR). The workflow is **stack-agnostic**; only the content of the lane-specific steps depends on the module's ecosystem. A **lane** is the ecosystem-specific answer to four questions: how to discover candidates, how to classify them, how to apply bumps, and how to verify. Two lanes ship pre-written; every other ecosystem gets a derived lane:
 
 - **Maven lane**: Java/Kotlin modules built with Maven. Uses the `versions-maven-plugin`, BOMs, and `pom.xml`. Details: [references/maven-lane.md](references/maven-lane.md)
+- **Gradle lane**: JVM and Android modules built with Gradle. Uses the versions plugin, version catalogs, and the AGP/Kotlin/KSP coupling matrices. Details: [references/gradle-lane.md](references/gradle-lane.md)
 - **Node lane**: JavaScript/TypeScript workspaces using npm or Yarn. Uses `package.json` plus the lockfile. Details: [references/node-lane.md](references/node-lane.md)
-- **Any other ecosystem** (Gradle, pip/Poetry/uv, Cargo, Go modules, Flutter/pub, Composer, RubyGems, …): derive a lane by filling in [references/lane-template.md](references/lane-template.md) for that ecosystem before STEP 1. Write the derived lane down in your working notes for the run, so every later step can point back to it.
+- **Any other ecosystem** (pip/Poetry/uv, Cargo, Go modules, Flutter/pub, Composer, RubyGems, …): derive a lane by filling in [references/lane-template.md](references/lane-template.md) for that ecosystem before STEP 1. Write the derived lane down in your working notes for the run, so every later step can point back to it.
 
 This file holds the shared workflow and the rules that apply to all lanes. The lane files hold the ecosystem-specific content for the lane-specific steps. **After STEP 0, read (or derive) the lane for every selected module before starting STEP 1. Do not run a lane from memory.** Do not mix lanes within a single module's run.
 
@@ -35,7 +36,7 @@ Discover the project's modules and their ecosystems. Do not assume a layout:
 find . -maxdepth 3 \( -name pom.xml -o -name 'build.gradle*' -o -name package.json -o -name pubspec.yaml -o -name pyproject.toml -o -name requirements.txt -o -name Cargo.toml -o -name go.mod -o -name composer.json -o -name Gemfile \) -not -path '*/target/*' -not -path '*/node_modules/*' -not -path '*/build/*' -not -path '*/.git/*'
 ```
 
-Map each hit to a lane: `pom.xml` → Maven lane; `package.json` → Node lane; anything else → a derived lane for that ecosystem (see the lane list above). Present the discovered modules as a numbered menu with their ecosystem (plus an "All modules" option) and ask the user which to check. Wait for the selection before proceeding. **Read the selected lane's reference file, or derive the lane from [references/lane-template.md](references/lane-template.md), now**, before STEP 1.
+Map each hit to a lane: `pom.xml` → Maven lane; `build.gradle*` → Gradle lane; `package.json` → Node lane; anything else → a derived lane for that ecosystem (see the lane list above). Present the discovered modules as a numbered menu with their ecosystem (plus an "All modules" option) and ask the user which to check. Wait for the selection before proceeding. **Read the selected lane's reference file, or derive the lane from [references/lane-template.md](references/lane-template.md), now**, before STEP 1.
 
 If "All modules" is selected, run STEPs 1–2 for each module independently, each in its own lane. Present a combined classification report grouped by module, and produce **one commit per module** in STEP 4 for clean bisectability.
 
@@ -78,7 +79,7 @@ Extract from each document, in this order:
 3. **Removed APIs and renamed classes/methods.** These become grep patterns for §4.3.
 4. **Renamed or removed configuration properties.** These become config-file grep patterns for §4.3.
 5. **Behavioural changes** (default-value flips, new validation, changed serialisation). Describe each.
-6. **For multi-version jumps** (v6 → v8): read every intermediate major's notes, not just the target.
+6. **For multi-version jumps** (v6 → v8): read every intermediate major's notes, not just the target. A multi-major jump is BLOCKED per §2.1; the notes you gather here feed its migration appendix, not a bump in this batch.
 
 For minor bumps where no migration guide exists, the release notes or changelog is enough. Extract the same items 3 and 4 if mentioned.
 
@@ -147,7 +148,7 @@ Rules:
 - Table cells must fit on one line. The migration headline is one short summary; full bullets live in the appendix.
 - Every BLOCKED row in the table must have a corresponding section in the appendix.
 - If release notes were unavailable, write "Notes unavailable, needs spike" as the headline and a single matching bullet in the appendix.
-- **Scope column by lane:** Maven uses `property` / `inline` / `parent`. Node uses `dependency` / `devDependency` / `@types` / `resolution`. A derived lane uses the scope buckets defined when deriving it (lane-template step 1c). Tag security-relevant rows with their advisory severity in the Notes column.
+- **Scope column by lane:** Maven uses `property` / `inline` / `parent`. Gradle uses `catalog` / `plugin` / `inline` / `wrapper`. Node uses `dependency` / `devDependency` / `@types` / `resolution`. A derived lane uses the scope buckets defined when deriving it (lane-template step 1c). Tag security-relevant rows with their advisory severity in the Notes column.
 
 Pre-existing drift items are included in the batch **automatically**. They are not optional.
 
@@ -164,7 +165,8 @@ Selection rules:
 
 - SAFE non-empty → "Drifts + SAFE".
 - SAFE empty, RISKY non-empty → "Drifts + RISKY (with care)".
-- Only BLOCKED items → "Drifts only".
+- Only BLOCKED items, drift present → "Drifts only".
+- Only BLOCKED or pre-release items and no drift → "No actionable updates".
 - Include RISKY in the recommendation only if there are 1–2 self-contained items the user could reasonably accept in the same PR. For 3+ RISKY items, recommend leaving them for separate PRs.
 
 The recommendation is your opinionated call. The user can override it in STEP 3.
@@ -232,6 +234,9 @@ Stage the lane's manifest files plus any changed sources:
 ```bash
 # Maven lane
 git add <module-dir>/pom.xml [<nested-pom>] [<changed-sources>]
+
+# Gradle lane
+git add gradle/libs.versions.toml [<build.gradle files>] [gradle/wrapper/] [<changed-sources>]
 
 # Node lane
 git add <module-dir>/package.json <module-dir>/<lockfile> [<changed-sources>]

@@ -2,7 +2,9 @@
 
 Use this when a selected module's ecosystem has no pre-written lane file, which means anything that isn't Maven or Node: Gradle, pip/Poetry/uv, Cargo, Go modules, Flutter/pub, Composer, RubyGems, NuGet, and so on. Fill in every section below for the ecosystem at hand **before running STEP 1**, and write the result down in your working notes for the run. The pre-written [maven-lane.md](maven-lane.md) and [node-lane.md](node-lane.md) show what a completed lane looks like; match their level of concreteness.
 
-A derived lane is complete when it answers the four questions with **real commands you have verified exist**, not guesses. If you are unsure of a command, check the tool's help output first (`gradle help`, `pip index --help`, `cargo --list`, …).
+A derived lane is complete when it answers the four questions with **real commands you have verified exist**, not guesses. If you are unsure of a command, check the tool's help output first (`pip index --help`, `cargo --list`, `dart pub outdated --help`, …).
+
+Before deriving from scratch, check whether an official ecosystem skill already answers part of the template. Known good sources: for Flutter/pub, `dart-resolve-package-conflicts` from [flutter/agent-plugins](https://github.com/flutter/agent-plugins) covers the `dart pub outdated` column model (Current/Upgradable/Resolvable/Latest maps directly to this skill's in-range vs out-of-range split), `dart pub upgrade --tighten`, and the rule to never delete a whole `pubspec.lock` (remove single entries surgically). For Android/Gradle, use the pre-written [gradle-lane.md](gradle-lane.md).
 
 ---
 

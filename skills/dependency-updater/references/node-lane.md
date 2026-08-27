@@ -28,6 +28,8 @@ cd <module-dir>
 npm outdated || true    # exits non-zero when anything is outdated; that's expected, not an error
 ```
 
+`npm outdated` reads installed versions from `node_modules`. On a Yarn Plug'n'Play project (no `node_modules`) its Current column is empty or wrong; use `yarn upgrade-interactive` to eyeball candidates instead, or `yarn npm info <pkg> --fields version` per package with `yarn.lock` as the Current source.
+
 Read the three columns. They map directly to classification:
 
 - **Current**: the installed version (from the lockfile).
@@ -126,7 +128,7 @@ All commands run from the module directory. Use the project's pinned package man
 YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn up <package>@<version>
 ```
 
-- **In-range (SAFE):** bump within the existing range with `yarn up` (with the override above when applicable) or `npm update <package>`, which updates the lockfile and the `package.json` range as needed.
+- **In-range (SAFE):** bump within the existing range with `yarn up` (with the override above when applicable), which updates the lockfile and the `package.json` range as needed. For npm, `npm update <package>` refreshes the lockfile within the existing range; it does not widen ranges.
 - **Range widening (major):** edit the `package.json` range to the new `^X.0.0` (or the version the migration guide requires), then relock (`yarn install` with the override, or `npm install`). Do not hand-edit the lockfile.
 - **Coupled groups (§1.4 / §2.b):** bump the whole group in one invocation so they resolve together, e.g. `yarn up react@<v> react-dom@<v>` or the full `vitest @vitest/*` set.
 - **`@types/*`:** move in the same step as its runtime library, never ahead of it.
@@ -140,7 +142,7 @@ yarn install --immutable   # Yarn: must pass with no lockfile changes
 # npm: npm ci --dry-run
 ```
 
-### 🚫 Generated-code guardrail
+### Generated-code guardrail
 
 If the project has CI- or script-generated code (OpenAPI clients, GraphQL types), **never hand-edit it.** If a codegen-related bump changes generated output, regenerate it with the project's own script and commit the regenerated result as-is. If regeneration produces a diff you can't explain or that breaks types, revert the bump and mark it BLOCKED. Do not patch generated files by hand.
 
