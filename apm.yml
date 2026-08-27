@@ -1,5 +1,5 @@
 name: skill-stash
-version: 0.1.0
+version: 0.2.0
 description: Aschwin's personal stash of agent skills. Reusable SKILL.md workflows for Claude Code, Codex, and other SKILL.md-aware tools.
 author: ashhas
 license: MIT

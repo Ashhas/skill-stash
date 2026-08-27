@@ -15,16 +15,18 @@ Skills here are applied per project. The projects that want a skill pull it in; 
 
 ## Install
 
-Per project, the intended way. Works for Claude Code, Codex, Cursor, and Copilot:
+Per project, the intended way. Works for Claude Code, Codex, Cursor, and Copilot. Example `apm.yml` (adjust the pin to the version you want, or drop it to track `main`):
 
 ```yaml
 # apm.yml
 dependencies:
   apm:
-    - ashhas/skill-stash#v0.1.0
+    - ashhas/skill-stash#v0.2.0
 ```
 
-Then `apm install`. No APM? Copy the skill folder into `<project>/.claude/skills/`.
+Then `apm install`. [APM](https://github.com/danielmeppiel/apm) resolves `owner/repo` against github.com directly: it fetches this repo into `apm_modules/`, records the exact commit in `apm.lock.yaml`, and copies the skills into the directories your tools read. Those directories differ per tool by design; the content is identical. Current APM writes `.claude/skills/` for Claude Code and `.agents/skills/` for Codex, Cursor, and Copilot (older APM versions only write `.agents/skills/`; upgrade with `apm update` if Claude Code doesn't see the skills).
+
+No APM? Copy the skill folder into `<project>/.claude/skills/`.
 
 Global install is opt-in, for when you want every skill on a machine:
 
