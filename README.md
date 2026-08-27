@@ -1,6 +1,8 @@
 # skill-stash
 
-My personal stash of agent skills — reusable SKILL.md workflows I use daily with Claude Code (and Codex-ready). Public but curated: things go in when I actually use them, not before.
+My personal stash of agent skills — reusable SKILL.md workflows for Claude Code (and Codex-ready). Public but curated: things go in when I actually use them, not before.
+
+Skills here are applied **per project**: the projects that want a skill pull it in; nothing assumes a machine-wide install.
 
 ## Skills
 
@@ -8,21 +10,11 @@ My personal stash of agent skills — reusable SKILL.md workflows I use daily wi
 |-------|--------------|
 | [prep-commit](skills/prep-commit/SKILL.md) | Detect the project's stack, run its formatters/linters, optionally update CHANGELOG and version, suggest a conventional commit and PR description. |
 | [unslop](skills/unslop/SKILL.md) | Cut AI tells from any writing. Always applied. |
-| [dependency-updater](skills/dependency-updater/SKILL.md) | Discover, classify (SAFE/RISKY/BLOCKED), and batch-apply dependency updates for any stack — pre-written lanes for Maven and Node, a lane template for everything else — with a mandatory migration-guide audit before any risky bump. Project-scoped: not installed globally. |
+| [dependency-updater](skills/dependency-updater/SKILL.md) | Discover, classify (SAFE/RISKY/BLOCKED), and batch-apply dependency updates for any stack — pre-written lanes for Maven and Node, a lane template for everything else — with a mandatory migration-guide audit before any risky bump. |
 
 ## Install
 
-**Personal (global, all projects):**
-
-```bash
-git clone https://github.com/ashhas/skill-stash && cd skill-stash && ./install.sh
-```
-
-Symlinks each skill into `~/.claude/skills/`. `git pull` updates them in place. `./install.sh --uninstall` removes the links.
-
-Skills marked *project-scoped* (currently `dependency-updater`) are skipped by the global install on purpose — pull those into the projects that want them via APM (below), or copy the folder into `<project>/.claude/skills/`.
-
-**Per project (via APM, works for Codex/Cursor/Copilot too):**
+**Per project (the intended way — via APM, works for Claude Code, Codex, Cursor, and Copilot):**
 
 ```yaml
 # apm.yml
@@ -31,12 +23,21 @@ dependencies:
     - ashhas/skill-stash
 ```
 
-Then `apm install`.
+Then `apm install`. No APM? Copy the skill folder into `<project>/.claude/skills/` instead.
 
-**Always-on skills:** `unslop` is meant to apply to all writing. Its description nudges auto-invocation, but for a guarantee add this line to your global `CLAUDE.md` (or reference it from `AGENTS.md` for Codex):
+**Global (opt-in, if you want every skill on a machine):**
+
+```bash
+git clone https://github.com/ashhas/skill-stash && cd skill-stash && ./install.sh
+```
+
+Symlinks each skill into `~/.claude/skills/`. `git pull` updates them in place. `./install.sh --uninstall` removes the links.
+
+**Always-on skills:** `unslop` is meant to apply to all writing. Its description nudges auto-invocation, but for a guarantee add an `@`-import to your `CLAUDE.md` (global or per-project; reference it from `AGENTS.md` for Codex), pointing at wherever the file lives for you:
 
 ```
-@~/.claude/skills/unslop/SKILL.md
+@~/Projects/skill-stash/skills/unslop/SKILL.md   # from a clone
+@.claude/skills/unslop/SKILL.md                  # from a project install
 ```
 
 ## Instructions

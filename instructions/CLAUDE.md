@@ -29,4 +29,4 @@ Style notes:
 
 # Writing style
 
-@~/.claude/skills/unslop/SKILL.md
+@~/Projects/skill-stash/skills/unslop/SKILL.md
