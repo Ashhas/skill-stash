@@ -1,18 +1,19 @@
 ---
 name: dependency-updater
-description: Discover, classify, and batch-apply dependency and plugin updates for any project — Maven/Java modules and Node (npm/Yarn) workspaces. Use when the user says "update dependencies", "check for updates", "bump versions", or "dependency audit".
+description: Discover, classify, and batch-apply dependency and plugin updates for any project, whatever the stack — Maven, Gradle, npm/Yarn/pnpm, pip/Poetry, Cargo, Go, Flutter/pub, and others. Use when the user says "update dependencies", "check for updates", "bump versions", or "dependency audit".
 ---
 
 # Dependency Updater
 
 Discover all available dependency and plugin updates for a project's modules, classify them by risk and effort, apply approved updates, verify the build, and prepare a PR.
 
-The workflow is the same for every module — STEP 0 (selection) → 1 (discovery) → 2 (classification) → 3 (confirmation) → 4 (apply) → 5 (PR). But the **content of the lane-specific steps depends on the module's ecosystem**, and there are two lanes:
+The workflow is the same for every module — STEP 0 (selection) → 1 (discovery) → 2 (classification) → 3 (confirmation) → 4 (apply) → 5 (PR). The workflow is **stack-agnostic**; only the content of the lane-specific steps depends on the module's ecosystem. A **lane** is the ecosystem-specific answer to four questions: how to discover candidates, how to classify them, how to apply bumps, and how to verify. Two lanes ship pre-written; every other ecosystem gets a derived lane:
 
 - **Maven lane** — Java/Kotlin modules built with Maven. Uses the `versions-maven-plugin`, BOMs, and `pom.xml`. Details: [references/maven-lane.md](references/maven-lane.md)
 - **Node lane** — JavaScript/TypeScript workspaces using npm or Yarn. Uses `package.json` + the lockfile. Details: [references/node-lane.md](references/node-lane.md)
+- **Any other ecosystem** (Gradle, pip/Poetry/uv, Cargo, Go modules, Flutter/pub, Composer, RubyGems, …) — derive a lane by filling in [references/lane-template.md](references/lane-template.md) for that ecosystem before STEP 1. Write the derived lane down (in your working notes for the run) so every later step can point back to it.
 
-This file holds the shared workflow and the rules that apply to both lanes. The lane files hold the ecosystem-specific content for the lane-specific steps. **After STEP 0, read the lane file for every selected module before starting STEP 1 — do not run a lane from memory.** Do not mix lanes within a single module's run.
+This file holds the shared workflow and the rules that apply to all lanes. The lane files hold the ecosystem-specific content for the lane-specific steps. **After STEP 0, read (or derive) the lane for every selected module before starting STEP 1 — do not run a lane from memory.** Do not mix lanes within a single module's run.
 
 > **Scope:** The lane files carry generic ecosystem rules plus *examples* of coupling matrices. On first use in a repo, verify the couplings against that project's actual stack.
 
@@ -31,11 +32,10 @@ This file holds the shared workflow and the rules that apply to both lanes. The 
 Discover the project's modules and their ecosystems — do not assume a layout:
 
 ```bash
-find . -maxdepth 3 -name pom.xml -not -path '*/target/*' -not -path '*/node_modules/*'
-find . -maxdepth 3 -name package.json -not -path '*/node_modules/*'
+find . -maxdepth 3 \( -name pom.xml -o -name 'build.gradle*' -o -name package.json -o -name pubspec.yaml -o -name pyproject.toml -o -name requirements.txt -o -name Cargo.toml -o -name go.mod -o -name composer.json -o -name Gemfile \) -not -path '*/target/*' -not -path '*/node_modules/*' -not -path '*/build/*' -not -path '*/.git/*'
 ```
 
-Map each hit to a lane: `pom.xml` → Maven lane; `package.json` → Node lane. Present the discovered modules as a numbered menu (plus an "All modules" option) and ask the user which to check. Wait for the selection before proceeding. **Read the selected lane's reference file now**, before STEP 1.
+Map each hit to a lane: `pom.xml` → Maven lane; `package.json` → Node lane; anything else → a derived lane for that ecosystem (see the lane list above). Present the discovered modules as a numbered menu with their ecosystem (plus an "All modules" option) and ask the user which to check. Wait for the selection before proceeding. **Read the selected lane's reference file — or derive the lane from [references/lane-template.md](references/lane-template.md) — now**, before STEP 1.
 
 If "All modules" is selected, run STEPs 1–2 for each module independently — each in its own lane — present a combined classification report grouped by module, and produce **one commit per module** in STEP 4 for clean bisectability.
 
@@ -73,7 +73,7 @@ Both documents may live at different URLs; many projects publish them together, 
 
 **Extract from each document, in this order:**
 
-1. **Required runtime version** (Java for the Maven lane, Node for the Node lane) — cross-check with the lane's compatibility rules
+1. **Required runtime version** (Java, Node, Python, Rust, Go, Dart — whatever the lane's runtime is) — cross-check with the lane's compatibility rules
 2. **Required parent/BOM or coupled-framework version** — cross-check with the lane's coupling rules
 3. **Removed APIs and renamed classes/methods** — these become grep patterns for §4.3
 4. **Renamed or removed configuration properties** — these become config-file grep patterns for §4.3
@@ -147,7 +147,7 @@ Rules:
 - Table cells must fit on one line. The migration headline is one short summary; full bullets live in the appendix.
 - Every BLOCKED row in the table must have a corresponding section in the appendix.
 - If release notes were unavailable, write "Notes unavailable — needs spike" as the headline and a single matching bullet in the appendix.
-- **Scope column by lane:** Maven uses `property` / `inline` / `parent`. Node uses `dependency` / `devDependency` / `@types` / `resolution`. Tag security-relevant rows with their advisory severity in the Notes column.
+- **Scope column by lane:** Maven uses `property` / `inline` / `parent`. Node uses `dependency` / `devDependency` / `@types` / `resolution`. A derived lane uses the scope buckets defined when deriving it (lane-template step 1c). Tag security-relevant rows with their advisory severity in the Notes column.
 
 Pre-existing drift items are included in the batch **automatically** — they are not optional.
 

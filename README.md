@@ -8,7 +8,7 @@ My personal stash of agent skills — reusable SKILL.md workflows I use daily wi
 |-------|--------------|
 | [prep-commit](skills/prep-commit/SKILL.md) | Detect the project's stack, run its formatters/linters, optionally update CHANGELOG and version, suggest a conventional commit and PR description. |
 | [unslop](skills/unslop/SKILL.md) | Cut AI tells from any writing. Always applied. |
-| [dependency-updater](skills/dependency-updater/SKILL.md) | Discover, classify (SAFE/RISKY/BLOCKED), and batch-apply dependency updates for Maven and Node projects, with a mandatory migration-guide audit before any risky bump. |
+| [dependency-updater](skills/dependency-updater/SKILL.md) | Discover, classify (SAFE/RISKY/BLOCKED), and batch-apply dependency updates for any stack — pre-written lanes for Maven and Node, a lane template for everything else — with a mandatory migration-guide audit before any risky bump. Project-scoped: not installed globally. |
 
 ## Install
 
@@ -19,6 +19,8 @@ git clone https://github.com/ashhas/skill-stash && cd skill-stash && ./install.s
 ```
 
 Symlinks each skill into `~/.claude/skills/`. `git pull` updates them in place. `./install.sh --uninstall` removes the links.
+
+Skills marked *project-scoped* (currently `dependency-updater`) are skipped by the global install on purpose — pull those into the projects that want them via APM (below), or copy the folder into `<project>/.claude/skills/`.
 
 **Per project (via APM, works for Codex/Cursor/Copilot too):**
 
