@@ -17,17 +17,15 @@ Generic testing rules for any Flutter project. The last sections are package-spe
 
 Do not test framework internals. Do not test that `flutter_bloc` emits states; trust the framework. Test your own logic.
 
-## Layered structure
+## Structure
 
-```
-test/
-├── unit/                     Pure logic, no I/O, no framework
-│   ├── domain/
-│   └── data/                 parsers, mappers
-├── bloc/                     bloc_test for every Bloc / Cubit (if using bloc)
-├── widget/                   Widget tests, verify state → widget-tree mapping
-└── integration/              (optional; slow) end-to-end against mocked I/O
-```
+`test/` mirrors `lib/`, folder for folder, concept subfolders included: a
+test file lives at the same relative path as the code it covers
+(`lib/orders/pricing/price_calculator.dart` →
+`test/orders/pricing/price_calculator_test.dart`). Shared helpers,
+factories, and fixtures live in `test/support/`. Do not sort tests into
+kind layers (`unit/`, `bloc/`, `widget/`); the mirrored path already says
+what a test is, and it keeps every file findable from its subject.
 
 ## Naming
 
