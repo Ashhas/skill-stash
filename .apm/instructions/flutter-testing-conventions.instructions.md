@@ -10,7 +10,7 @@ Generic testing rules for any Flutter project. The last sections are package-spe
 ## What to test
 
 - **Every new or changed public API** needs a test.
-- **Every bug fix** ships with a regression test that fails on the old code and passes on the fix.
+- **Every bug fix** ships with a regression test written *before* the fix and watched failing on the old code -- then the fix makes it pass. A test that never failed proves nothing.
 - **Every domain algorithm** (score calculations, parsers, merge logic) has a unit test with edge cases at boundaries.
 - **Every repository** has a test against a mocked data source, verifying the interface contract.
 - **When code reproduces a specific numeric behaviour from a legacy system or spec** (rounding mode, bucket boundary, exclusion rule), pin it with a boundary test at the exact tie/edge value. A spec that says "rounded to 1 decimal" is ambiguous (banker's vs away-from-zero); the test locks the decision, e.g. assert `7.25 → 7.2` for round-half-to-even.

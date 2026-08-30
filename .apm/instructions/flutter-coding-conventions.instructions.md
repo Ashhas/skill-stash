@@ -1,5 +1,5 @@
 ---
-description: Generic Dart/Flutter coding conventions -- naming, one-widget-per-file, forbidden patterns, imports, comments, nullability, async, typed errors. Package-conditional sections for bloc and go_router.
+description: Generic Dart/Flutter coding conventions -- naming, one-widget-per-file, file/folder layout, modeling, forbidden patterns, imports, comments, nullability, async, typed errors. Package-conditional sections for bloc and go_router.
 applyTo: "**/*.dart"
 ---
 
@@ -25,6 +25,12 @@ If an analyzer rule fires, fix the code, not the rule. Disabling a lint to make 
 - Constants: `lowerCamelCase` (Dart convention); `SCREAMING_CASE` only for compile-time env constants (`kApiBaseUrl`)
 - Private members: leading underscore (`_privateField`, `_privateMethod`)
 - Destructured variables: full descriptive names, never single letters. Applies wherever a pattern binds multiple values of different types: record destructuring (`final (weight, measuredAt) = ...`), if-case patterns, and switch patterns. `final (a, b) = ...` forces the reader to look up which position holds what; the names must carry that information.
+- Methods are actions: anything called with parentheses gets a verb name (`computeScore()`, `getReading()`, `resolveConflict()`). Traits that do no work stay getters and may be noun-shaped (`isOnline`, `displayName`). Pick the shortest verb that keeps the action and its meaning: `get` for lookups, `compute` for calculations, never a verb that overclaims (a lookup is `getEntry`, not `computeEntry`).
+- Named constructors are exempt from the verb rule: `Report.fromJson(...)` is idiomatic because the class-name position already says "construct".
+- Name the concept, never the technology. No implementation infixes: the bloc's event type is `ScanEvent`, not `ScanBlocEvent`.
+- No singular/plural type pairs unless one is genuinely the element type of the other. `Setting`/`Settings` promises "a Settings is a collection of Setting"; if that is false, rename one side. Avoid near-anagram pairs (`StageStat` next to `StatStages`) for the same reason: the reader cannot tell them apart at a glance.
+- Names must be unambiguous out of context: a folder called `stages/` could hold pipeline stages, animation stages, or stat stages. Name the domain concept it actually holds.
+- A literal that encodes a domain rule gets a named constant stating that rule: a `?? 1.0` fallback meaning "unlisted entries count as neutral" becomes `neutralFactor`. Plain mathematical identities (a product starting at 1, a sum at 0) stay literals.
 
 ## Widgets
 
@@ -34,8 +40,8 @@ The rule targets a specific smell: a screen or component file that grows a tail 
 
 Where extracted widgets live (adapt folder names to the project's layout):
 
-- Feature-local widgets go in the feature's own `widgets/` folder (e.g. `ui/features/<feature>/widgets/<widget_name>.dart`). Sub-divide with further folders if the feature grows.
-- App-wide reusable widgets go in a shared folder grouped by kind (e.g. `ui/common/buttons/`, `cards/`, `inputs/`, `layout/`, `states/`). Add a new category folder rather than dumping into a flat `common/`.
+- Presentation folders mirror the widget composition tree: the screen and its top-level layouts at the feature root, one folder per visual cluster, sub-clusters nested (`checkout/summary/`, `checkout/line_items/`). No flat `widgets/` dump where a screen-level layout sits next to a three-line helper.
+- Widgets whose parents live in *different* clusters go to a shared folder (`common/`, grouped further by kind when it grows: `buttons/`, `cards/`). Everything with a single home stays in its cluster.
 
 Naming:
 
@@ -49,6 +55,20 @@ Not covered by this rule (still allowed, never the smell):
 - `State<T>` classes paired with a `StatefulWidget`. The framework requires them; they're not a "second widget."
 - Private helper methods on a widget class, including `Widget _buildFoo(BuildContext context)` helpers. Methods aren't widget classes.
 - Private classes from `package:flutter` or any other package. This rule only governs widgets you author.
+
+## Files and folders
+
+One concept per file, where a concept is exactly one of:
+
+- a single public class (its private helpers may live alongside it);
+- a single enum plus its extensions -- an enum never shares a file with a class;
+- a sealed hierarchy: a folder named after the base type holding the library file and one part file per subtype (`scan_event/scan_event.dart` + `scan_started.dart`, `scan_failed.dart`, ...).
+
+Folder layout inside a layer:
+
+- Domain folders first (`orders/`, `scanning/`), and the concept a folder is named after sits at its root, never buried in a subfolder: `orders/order.dart`, not `orders/models/order.dart`.
+- Prefer named concept subfolders whenever 2+ files share a concept (`orders/pricing/`, `scanning/calibration/`). `models/` and `enums/` are the fallback for leftovers with no richer shared concept, never the default destination.
+- Vocabulary shared by two domains gets its own neutral folder so folder dependencies stay one-way: if `scans/` and `alarms/` both need `Severity`, it lives in neither. A domain never imports a domain that imports it back.
 
 ## Forbidden patterns
 
@@ -108,15 +128,28 @@ Comment forms required elsewhere in these conventions are unaffected: `// Privat
 - Cross-boundary errors (network, storage) are wrapped into domain exceptions at the repository layer. UI never sees a transport exception (like a `DioException`) directly.
 - State-management code catches domain exceptions and emits error states with a machine-readable code plus the localized message key.
 
+## Modeling and code shape
+
+- States that are mutually exclusive share one enum field; states that can coexist get separate fields. If "burned" and "confused" can both be true at once, they cannot live in the same enum.
+- Separate state by lifetime. Scope-bound values (per session, per match, per request) live in their own type that gets *replaced* when the scope ends, not in fields on the long-lived entity that a cleanup method must remember to reset. Clearing by construction beats clearing by convention.
+- An invariant spanning two values gets exactly one write path: one helper that always writes the pair (a status with its counter, an emitted event with its state transition). Two call sites hand-pairing them is a desync waiting to happen.
+- Setup and factory classes never decide their own inputs: the caller generates and passes. `freshGame(teams)` with the caller drawing random teams first, not `freshGame(random)` deciding inside.
+- Dispatch over sealed types with an exhaustive `switch`, never `is`-checks plus `as`-casts: a new subtype must fail compilation at every dispatch site instead of throwing at runtime.
+- Multi-value returns use records, not sentinels or nullable dances: `({Item item, int? slot})` with a null slot beats returning `-1`.
+- A formula lives in exactly one place. A call site that needs a variant extracts a shared helper; it never copies the expression.
+- Order methods in a class the way the process runs, so the file reads top-down as its lifecycle, and let an orchestrating method *be* the sequence of named steps rather than narrating phases with comments.
+
 ## Layering
 
 - Feature UI code lives with its feature; data access lives in repositories. State-management classes do not touch the database or HTTP client directly.
+- State-management classes live beside the UI they drive (`presentation/<feature>/state/`; plain `presentation/state/` in a single-feature app), not in a top-level `bloc/` folder.
 - Domain logic (algorithms, coordinators, model classes) lives in `domain/`, free of Flutter imports.
 
 ## If the project uses bloc / flutter_bloc
 
 - Bloc events: `<Subject><PastTenseVerb>` (`ScanRequested`, `MeasurementCompleted`)
 - Cubit / Bloc state classes: `<Feature>State` with named-constructor sub-states (`ScanOverviewState.loaded`, `ScanOverviewState.error`)
+- When `<Feature>State` would collide with a domain type the bloc wraps, the domain type keeps the plain name and the bloc state takes a distinguishing one (`<Feature>ViewState`)
 - All state classes are `@immutable` with `Equatable`. Use `copyWith`, never field assignment.
 - Blocs/Cubits that listen to streams store the `StreamSubscription` and cancel it in an overridden `close()`.
 
