@@ -13,6 +13,7 @@ Skills here are applied per project. The projects that want a skill pull it in; 
 | [unslop](skills/unslop/SKILL.md) | Cuts AI tells from any writing. Always applied. |
 | [skillwright](skills/skillwright/SKILL.md) | Guides writing a new agent skill: naming, the description line, layout, formatting for agent readers, and a pre-publish checklist. |
 | [dependency-updater](skills/dependency-updater/SKILL.md) | Discovers, classifies (SAFE/RISKY/BLOCKED), and batch-applies dependency updates for any stack, with a mandatory migration-guide audit before any risky bump. Ships Maven, Gradle, and Node lanes plus a template for deriving other ecosystems. |
+| [odoo](skills/odoo/SKILL.md) | Writes Odoo timesheet lines for a day, one per Jira ticket in the fixed `Jira#<ticket>: <title> - <work>` format, with titles fetched from Jira and an hour split estimated from the day's commits and PRs. |
 
 ## Install
 
