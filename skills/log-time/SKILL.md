@@ -1,9 +1,9 @@
 ---
-name: odoo
-description: Write Odoo timesheet lines for a day of work, one per Jira ticket, in the fixed format "Jira#<ticket>: <Jira title> - <what you did>", with an hour split estimated from the day's commits and PRs. Use when the user says "odoo", "uren boeken", "timesheet", "log my hours", or asks what to write in Odoo.
+name: log-time
+description: Write the timesheet lines for a day of work (Odoo, or any tool that takes one line per ticket), one per Jira ticket, in the fixed format "Jira#<ticket>: <Jira title> - <what you did>", with an hour split estimated from the day's commits and PRs. Use when the user says "log time", "log-time", "odoo", "uren boeken", "timesheet", "log my hours", or asks what to write in Odoo.
 ---
 
-# Odoo timesheet lines
+# Log time
 
 Collect the day's tickets, fetch each Jira title verbatim, describe the work in one clause, estimate hours from timestamps, print the lines.
 
